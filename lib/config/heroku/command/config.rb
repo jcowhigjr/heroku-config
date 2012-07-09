@@ -1,4 +1,5 @@
 require "heroku/command/config"
+require "fileutils"
 
 class Heroku::Command::Config
 
@@ -17,7 +18,7 @@ class Heroku::Command::Config
 
     config = merge_config(remote_config, local_config, interactive, overwrite)
     write_local_config config
-    display "Config for #{app} written to .env"
+    display "Config for #{app} written to .env.d/#{app}"
   end
 
   # config:push
@@ -35,13 +36,13 @@ class Heroku::Command::Config
 
     config = merge_config(local_config, remote_config, interactive, overwrite)
     write_remote_config config
-    display "Config in .env written to #{app}"
+    display "Config in .env.d/#{app} written to #{app}"
   end
 
 private ######################################################################
 
   def local_config
-    File.read(".env").split("\n").inject({}) do |hash, line|
+    File.read(".env.d/#{app}").split("\n").inject({}) do |hash, line|
       if line =~ /\A([A-Za-z0-9_]+)=(.*)\z/
         hash[$1] = $2
       end
@@ -56,7 +57,8 @@ private ######################################################################
   end
 
   def write_local_config(config)
-    File.open(".env", "w") do |file|
+    File.directory?(".env.d") or FileUtils.mkdir('.env.d')
+    File.open(".env.d/#{app}", "w") do |file|
       config.keys.sort.each do |key|
         file.puts "#{key}=#{config[key]}"
       end
